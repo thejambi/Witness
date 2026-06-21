@@ -221,10 +221,11 @@ const PROM = {3:"Major", 2:"Supporting", 1:"Minor"};
 const TRIBE_GROUP = {
   "Primeval":"prenat","Patriarch":"prenat",
   "Judah":"israel","Levi":"israel","Benjamin":"israel","Ephraim":"israel",
-  "Manasseh":"israel","Dan":"israel","Zebulun":"israel","Israelite":"israel",
+  "Manasseh":"israel","Dan":"israel","Zebulun":"israel","Naphtali":"israel","Asher":"israel","Israelite":"israel",
   "Egyptian":"gentile","Midianite":"gentile","Moabite":"gentile","Canaanite":"gentile",
   "Philistine":"gentile","Edomite":"gentile","Aramean":"gentile","Sidonian":"gentile",
-  "Babylonian":"gentile","Persian":"gentile","Roman":"gentile","Greek":"gentile","Uz":"gentile"
+  "Babylonian":"gentile","Persian":"gentile","Roman":"gentile","Greek":"gentile","Uz":"gentile",
+  "Amalekite":"gentile"
 };
 
 // per-figure tribe/nation, keyed by name (kept separate so the rows above stay untouched)
@@ -257,7 +258,19 @@ const TRIBE = {
   "Paul":"Benjamin","Stephen":"Israelite","Barnabas":"Levi","Cornelius":"Roman","Lydia":"Greek",
   "Priscilla":"Israelite","Aquila":"Israelite","Apollos":"Israelite","Silas":"Israelite",
   "Philip (the Evangelist)":"Israelite","Timothy":"Israelite","Titus":"Greek","Luke":"Greek",
-  "Mark":"Israelite","Philemon":"Greek","Onesimus":"Greek"
+  "Mark":"Israelite","Philemon":"Greek","Onesimus":"Greek",
+  "Seth":"Primeval","Melchizedek":"Canaanite","Tamar":"Canaanite","Dinah":"Patriarch",
+  "Benjamin":"Patriarch","Reuben":"Patriarch","Potiphar":"Egyptian",
+  "Balaam":"Aramean","Korah":"Levi","Phinehas":"Levi",
+  "Barak":"Naphtali","Abimelech":"Manasseh",
+  "Jesse":"Judah","Michal":"Benjamin","Abner":"Benjamin",
+  "Jeroboam":"Ephraim","Rehoboam":"Judah","Naboth":"Israelite","Gehazi":"Israelite","Huldah":"Israelite",
+  "Belshazzar":"Babylonian","Xerxes":"Persian","Vashti":"Persian","Haman":"Amalekite",
+  "Elizabeth":"Levi","Simeon":"Israelite","Anna":"Asher","Mary of Bethany":"Israelite",
+  "Nathanael":"Israelite","Joseph of Arimathea":"Israelite","Herod Antipas":"Edomite","Bartimaeus":"Israelite",
+  "James (brother of Jesus)":"Judah","Jude":"Judah",
+  "Ananias of Damascus":"Israelite","Sapphira":"Israelite","Dorcas":"Israelite","Gamaliel":"Israelite",
+  "Herod Agrippa":"Edomite"
 };
 
 // per-figure prominence (3/2/1), keyed by name
@@ -279,7 +292,16 @@ const PROM_FOR = {
   "Judas Iscariot":3,"Mary Magdalene":2,"Martha":1,"Lazarus":2,"Nicodemus":1,"Zacchaeus":1,
   "Pontius Pilate":2,"Herod the Great":2,"Caiaphas":1,
   "Paul":3,"Stephen":2,"Barnabas":2,"Cornelius":1,"Lydia":1,"Priscilla":1,"Aquila":1,"Apollos":2,
-  "Silas":1,"Philip (the Evangelist)":2,"Timothy":2,"Titus":1,"Luke":2,"Mark":2,"Philemon":1,"Onesimus":1
+  "Silas":1,"Philip (the Evangelist)":2,"Timothy":2,"Titus":1,"Luke":2,"Mark":2,"Philemon":1,"Onesimus":1,
+  "Seth":1,"Melchizedek":2,"Tamar":1,"Dinah":1,"Benjamin":2,"Reuben":1,"Potiphar":1,
+  "Balaam":2,"Korah":1,"Phinehas":1,"Barak":2,"Abimelech":1,
+  "Jesse":2,"Michal":1,"Abner":1,
+  "Jeroboam":2,"Rehoboam":2,"Naboth":1,"Gehazi":1,"Huldah":1,
+  "Belshazzar":2,"Xerxes":2,"Vashti":1,"Haman":2,
+  "Elizabeth":2,"Simeon":1,"Anna":1,"Mary of Bethany":2,"Nathanael":1,"Joseph of Arimathea":2,
+  "Herod Antipas":2,"Bartimaeus":1,
+  "James (brother of Jesus)":2,"Jude":1,
+  "Ananias of Damascus":1,"Sapphira":1,"Dorcas":1,"Gamaliel":1,"Herod Agrippa":1
 };
 
 // --- the dataset -------------------------------------------------------------
@@ -418,7 +440,48 @@ const RAW = [
   ["Luke","NT","Acts","Evangelist","M",9,"Colossians 4:14","The beloved physician; Gospel author."],
   ["Mark","NT","Gospels","Evangelist","M",9,"Acts 12:25","Wrote the second Gospel."],
   ["Philemon","NT","Epistles","Other","M",9,"Philemon 1:10","Asked to receive back Onesimus."],
-  ["Onesimus","NT","Epistles","Other","M",9,"Philemon 1:11","Runaway slave become a brother."]
+  ["Onesimus","NT","Epistles","Other","M",9,"Philemon 1:11","Runaway slave become a brother."],
+
+  // --- additional figures (batch 2) ---
+  ["Seth","OT","Law","Other","M",1,"Genesis 4:25","Son given to Adam in place of Abel."],
+  ["Melchizedek","OT","Law","Priest","M",2,"Genesis 14:18","King of Salem who blessed Abram."],
+  ["Tamar","OT","Law","Other","F",2,"Genesis 38:26","Secured her place in Judah's line."],
+  ["Dinah","OT","Law","Other","F",2,"Genesis 34:1","Daughter of Jacob and Leah."],
+  ["Benjamin","OT","Law","Other","M",2,"Genesis 35:18","Jacob's youngest, Rachel's last son."],
+  ["Reuben","OT","Law","Other","M",2,"Genesis 37:21","Firstborn who spared Joseph's life."],
+  ["Potiphar","OT","Law","Other","M",2,"Genesis 39:1","Egyptian officer who bought Joseph."],
+  ["Balaam","OT","Law","Prophet","M",3,"Numbers 22:28","Pagan seer whose donkey spoke."],
+  ["Korah","OT","Law","Villain","M",3,"Numbers 16:32","Led a revolt; swallowed by the earth."],
+  ["Phinehas","OT","Law","Priest","M",3,"Numbers 25:11","Zealous priest, grandson of Aaron."],
+  ["Barak","OT","History","Judge","M",4,"Judges 4:6","Led Israel's army alongside Deborah."],
+  ["Abimelech","OT","History","Villain","M",4,"Judges 9:5","Killed his brothers to seize power."],
+  ["Jesse","OT","History","Other","M",5,"1 Samuel 16:1","Bethlehemite father of David."],
+  ["Michal","OT","History","Other","F",5,"1 Samuel 18:27","Saul's daughter, David's first wife."],
+  ["Abner","OT","History","Leader","M",5,"2 Samuel 3:27","Saul's commander, slain by Joab."],
+  ["Jeroboam","OT","History","King","M",6,"1 Kings 12:28","First king of the northern tribes."],
+  ["Rehoboam","OT","History","King","M",6,"1 Kings 12:13","Solomon's son; split the kingdom."],
+  ["Naboth","OT","History","Other","M",6,"1 Kings 21:3","Killed for his vineyard by Jezebel."],
+  ["Gehazi","OT","History","Villain","M",6,"2 Kings 5:27","Elisha's servant, struck with leprosy."],
+  ["Huldah","OT","History","Prophet","F",6,"2 Kings 22:14","Prophetess consulted by King Josiah."],
+  ["Belshazzar","OT","Prophets","King","M",7,"Daniel 5:5","Saw the writing on the wall."],
+  ["Xerxes","OT","History","King","M",7,"Esther 1:1","Persian king who chose Esther."],
+  ["Vashti","OT","History","Queen","F",7,"Esther 1:12","Queen deposed for defying the king."],
+  ["Haman","OT","History","Villain","M",7,"Esther 3:5","Plotted to destroy the Jews."],
+  ["Elizabeth","NT","Gospels","Other","F",8,"Luke 1:13","Mother of John the Baptist."],
+  ["Simeon","NT","Gospels","Other","M",8,"Luke 2:28","Held the infant Jesus in the temple."],
+  ["Anna","NT","Gospels","Prophet","F",8,"Luke 2:38","Aged prophetess who saw the Messiah."],
+  ["Mary of Bethany","NT","Gospels","Disciple","F",8,"John 12:3","Anointed Jesus with costly perfume."],
+  ["Nathanael","NT","Gospels","Apostle","M",8,"John 1:49","Declared Jesus the Son of God."],
+  ["Joseph of Arimathea","NT","Gospels","Other","M",8,"Mark 15:43","Gave his tomb for Jesus' burial."],
+  ["Herod Antipas","NT","Gospels","Villain","M",8,"Mark 6:27","Beheaded John the Baptist."],
+  ["Bartimaeus","NT","Gospels","Other","M",8,"Mark 10:51","Blind beggar healed by Jesus."],
+  ["James (brother of Jesus)","NT","Epistles","Leader","M",9,"James 1:1","Led the Jerusalem church."],
+  ["Jude","NT","Epistles","Other","M",9,"Jude 1:1","Brother of James; wrote a short epistle."],
+  ["Ananias of Damascus","NT","Acts","Disciple","M",9,"Acts 9:17","Restored Saul's sight at the Lord's call."],
+  ["Sapphira","NT","Acts","Villain","F",9,"Acts 5:10","Lied to the Spirit and fell dead."],
+  ["Dorcas","NT","Acts","Disciple","F",9,"Acts 9:36","Charitable woman raised by Peter."],
+  ["Gamaliel","NT","Acts","Other","M",9,"Acts 5:34","Respected Pharisee; Paul's teacher."],
+  ["Herod Agrippa","NT","Acts","Villain","M",9,"Acts 12:23","Struck down for accepting worship."]
 ];
 
 const FIGURES = RAW.map(r => ({
