@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WITNESS — The Daily Bible Figure Game</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1f242e; --line:#2a3140;
+    --text:#e8eaf0; --muted:#9aa3b2; --accent:#c9a227;
+    --green:#3a8a4f; --yellow:#c9a227; --gray:#3a4150;
+    --green-soft:#23402c; --yellow-soft:#3d3417;
+    --radius:10px; --tile:64px;
+    font-synthesis:none;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:radial-gradient(1200px 600px at 50% -10%, #1b2030 0%, var(--bg) 60%);
+    color:var(--text);
+    font-family:"Iowan Old Style","Palatino Linotype",Georgia,"Times New Roman",serif;
+    -webkit-font-smoothing:antialiased; line-height:1.45;
+    display:flex; flex-direction:column; align-items:center; min-height:100%;
+  }
+  header{width:100%; border-bottom:1px solid var(--line); text-align:center; padding:14px 12px 12px;}
+  h1{margin:0; font-size:30px; letter-spacing:.32em; font-weight:600; padding-left:.32em;}
+  .sub{margin:4px 0 0; color:var(--muted); font-size:13px; letter-spacing:.04em;
+       font-family:ui-sans-serif,system-ui,sans-serif;}
+  .scripture{color:var(--accent); font-style:italic;}
+  main{width:100%; max-width:560px; padding:14px 14px 60px; display:flex; flex-direction:column; gap:14px;}
+
+  .legend{display:flex; gap:14px; justify-content:center; flex-wrap:wrap; color:var(--muted);
+          font-size:12px; font-family:ui-sans-serif,system-ui,sans-serif;}
+  .legend span{display:inline-flex; align-items:center; gap:5px;}
+  .swatch{width:13px; height:13px; border-radius:3px; display:inline-block;}
+
+  /* table head */
+  .heads{display:grid; grid-template-columns:repeat(5,1fr); gap:6px; padding:0 2px;
+         font-family:ui-sans-serif,system-ui,sans-serif; font-size:10.5px; letter-spacing:.06em;
+         text-transform:uppercase; color:var(--muted); text-align:center;}
+
+  .board{display:flex; flex-direction:column; gap:6px;}
+  .row{display:grid; grid-template-columns:repeat(5,1fr); gap:6px;}
+  .cell{
+    aspect-ratio:1/1; border-radius:8px; border:1px solid var(--line);
+    background:var(--panel); display:flex; flex-direction:column; align-items:center;
+    justify-content:center; text-align:center; padding:3px;
+    font-family:ui-sans-serif,system-ui,sans-serif;
+    font-size:12px; font-weight:600; line-height:1.15; min-height:54px;
+    position:relative; overflow:hidden;
+  }
+  .cell.empty{opacity:.5;}
+  .cell .arrow{font-size:18px; line-height:1; margin-top:1px;}
+  .cell.green{background:var(--green); border-color:#4aa563; color:#eafff0;}
+  .cell.yellow{background:var(--yellow); border-color:#e0bd45; color:#1a1500;}
+  .cell.gray{background:var(--gray); border-color:#4a5263; color:#cdd4e0;}
+  .cell.flip{animation:flip .5s ease both;}
+  @keyframes flip{0%{transform:rotateX(0)}50%{transform:rotateX(90deg)}100%{transform:rotateX(0)}}
+
+  .guessname{position:absolute; top:3px; left:0; right:0; font-size:9px; color:var(--muted);
+             font-weight:500; text-transform:none; letter-spacing:0; display:none;}
+
+  /* name label strip above each guessed row */
+  .namestrip{font-family:ui-sans-serif,system-ui,sans-serif; font-size:12.5px; font-weight:600;
+             color:var(--text); margin:2px 2px -2px; letter-spacing:.02em;}
+  .namestrip.win{color:var(--green);}
+  .namestrip.twin{color:var(--yellow);}
+  .twinnote{font-weight:600; font-size:10.5px; opacity:.9; margin-left:6px;}
+
+  .inputwrap{position:relative; font-family:ui-sans-serif,system-ui,sans-serif;}
+  #guess{
+    width:100%; padding:13px 14px; font-size:16px; border-radius:var(--radius);
+    border:1px solid var(--line); background:var(--panel2); color:var(--text);
+    font-family:inherit; outline:none;
+  }
+  #guess:focus{border-color:var(--accent);}
+  #guess:disabled{opacity:.5;}
+  .suggest{position:absolute; left:0; right:0; top:calc(100% + 4px); background:var(--panel2);
+           border:1px solid var(--line); border-radius:var(--radius); max-height:240px;
+           overflow:auto; z-index:20; display:none; box-shadow:0 10px 30px rgba(0,0,0,.4);}
+  .suggest div{padding:10px 14px; cursor:pointer; font-size:14.5px; border-bottom:1px solid var(--line);}
+  .suggest div:last-child{border-bottom:none;}
+  .suggest div.active,.suggest div:hover{background:var(--accent); color:#1a1500;}
+  .suggest .tag{float:right; color:var(--muted); font-size:11px; font-weight:600;}
+  .suggest div.active .tag,.suggest div:hover .tag{color:#5a4a00;}
+
+  .controls{display:flex; gap:8px; font-family:ui-sans-serif,system-ui,sans-serif;}
+  button.act{flex:1; padding:12px; border-radius:var(--radius); border:1px solid var(--line);
+        background:var(--panel2); color:var(--text); font-size:14px; font-weight:600; cursor:pointer;
+        font-family:inherit;}
+  button.act:hover{border-color:var(--accent);}
+  button.primary{background:var(--accent); color:#1a1500; border-color:var(--accent);}
+
+  .msg{min-height:20px; text-align:center; font-family:ui-sans-serif,system-ui,sans-serif;
+       font-size:14px; color:var(--accent);}
+
+  .overlay{position:fixed; inset:0; background:rgba(6,8,12,.72); backdrop-filter:blur(3px);
+           display:none; align-items:center; justify-content:center; z-index:40; padding:18px;}
+  .overlay.show{display:flex; animation:fade .2s ease both;}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .endcard{background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px 18px 18px;
+           text-align:center; position:relative; width:100%; max-width:430px;
+           box-shadow:0 24px 60px rgba(0,0,0,.55); animation:pop .25s ease both;}
+  @keyframes pop{from{transform:translateY(12px) scale(.97); opacity:0} to{transform:none; opacity:1}}
+  .close{position:absolute; top:8px; right:12px; background:none; border:none; color:var(--muted);
+         font-size:26px; line-height:1; cursor:pointer; padding:0; width:30px; height:30px;}
+  .close:hover{color:var(--text);}
+  .endcard h2{margin:0 0 4px; font-size:22px;}
+  .endcard .verse{color:var(--muted); font-size:14px; font-style:italic; margin:6px 0 12px;
+                  font-family:inherit;}
+  .endcard .who{font-size:15px; color:var(--text); margin-bottom:12px;
+                font-family:ui-sans-serif,system-ui,sans-serif;}
+  .endcard .stats{display:flex; justify-content:center; gap:22px; margin:10px 0 14px;
+                  font-family:ui-sans-serif,system-ui,sans-serif;}
+  .endcard .stats div b{display:block; font-size:22px;}
+  .endcard .stats div span{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em;}
+
+  footer{color:var(--muted); font-size:11.5px; text-align:center; padding:0 12px 24px; max-width:520px;
+         font-family:ui-sans-serif,system-ui,sans-serif;}
+  a{color:var(--accent);}
+  .toast{position:fixed; top:18px; left:50%; transform:translateX(-50%); background:#000;
+         color:#fff; padding:10px 18px; border-radius:8px; font-family:ui-sans-serif,system-ui,sans-serif;
+         font-size:14px; opacity:0; transition:opacity .25s; pointer-events:none; z-index:50;}
+  .toast.show{opacity:.95;}
+  @media (max-width:480px){ .cell{font-size:11px; min-height:46px;} h1{font-size:24px;} }
+</style>
+</head>
+<body>
+<header>
+  <h1>WITNESS</h1>
+  <p class="sub">Guess the daily figure from Scripture in 6 tries · <span class="scripture">“a great cloud of witnesses” — Heb 12:1</span></p>
+</header>
+
+<main>
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--green)"></i>exact match</span>
+    <span><i class="swatch" style="background:var(--yellow)"></i>close / related</span>
+    <span><i class="swatch" style="background:var(--gray)"></i>no match</span>
+    <span>⬆️ later era / more prominent&nbsp;&nbsp;⬇️ earlier / less prominent</span>
+  </div>
+
+  <div class="heads">
+    <div>Section</div><div>Role</div><div>Tribe / Nation</div><div>Era</div><div>Prominence</div>
+  </div>
+
+  <div class="board" id="board"></div>
+
+  <div class="msg" id="msg"></div>
+
+  <div class="inputwrap">
+    <input id="guess" type="text" autocomplete="off" spellcheck="false"
+           placeholder="Name a Bible figure…" />
+    <div class="suggest" id="suggest"></div>
+  </div>
+
+  <div class="controls">
+    <button class="act primary" id="submitBtn">Guess</button>
+    <button class="act" id="practiceBtn">New random puzzle</button>
+    <button class="act primary" id="reopenBtn" style="display:none">📋 Results</button>
+  </div>
+</main>
+
+<div class="overlay" id="overlay">
+  <div class="endcard" id="endcard">
+    <button class="close" id="closeBtn" aria-label="Close">×</button>
+    <h2 id="endTitle"></h2>
+    <div class="who" id="endWho"></div>
+    <div class="verse" id="endVerse"></div>
+    <div class="stats">
+      <div><b id="stPlayed">0</b><span>played</span></div>
+      <div><b id="stWin">0%</b><span>won</span></div>
+      <div><b id="stStreak">0</b><span>streak</span></div>
+    </div>
+    <div class="controls">
+      <button class="act primary" id="copyBtn">📋 Copy result</button>
+      <button class="act primary" id="shareBtn" style="display:none">Share</button>
+    </div>
+    <div class="controls" style="margin-top:8px">
+      <button class="act" id="againBtn">Play another</button>
+    </div>
+  </div>
+</div>
+
+<footer id="foot"></footer>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   WITNESS — a Wordle-inspired Bible deduction game
+   Single-file, no dependencies. Data is a curated set of
+   well-known Scripture figures with five comparable attributes.
+   ============================================================ */
+
+// era: redemptive-history timeline buckets (1 earliest → 9 latest)
+const ERAS = {
+  1:"Primeval", 2:"Patriarchs", 3:"Exodus", 4:"Judges", 5:"United Kingdom",
+  6:"Prophets / Kings", 7:"Exile & Return", 8:"Gospels", 9:"Early Church"
+};
+
+// role families → used for YELLOW (close) matches
+const ROLE_FAMILY = {
+  Patriarch:"founders", Matriarch:"founders",
+  King:"royalty", Queen:"royalty",
+  Prophet:"spiritual", Priest:"spiritual",
+  Apostle:"followers", Disciple:"followers", Evangelist:"followers", Missionary:"followers",
+  Leader:"leaders", Judge:"leaders",
+  Villain:"opposition",
+  Messiah:"messiah",
+  Other:"other"
+};
+
+// section groups belong to a testament → YELLOW when same testament, different group
+const OT_SECTIONS = ["Law","History","Wisdom","Prophets"];
+const NT_SECTIONS = ["Gospels","Acts","Epistles"];
+
+// prominence: 3 Major (household name) · 2 Supporting · 1 Minor.  Directional ⬆️/⬇️.
+const PROM = {3:"Major", 2:"Supporting", 1:"Minor"};
+
+// tribe / nation / origin → group drives YELLOW (Israelite vs Gentile vs pre-national).
+// "Israelite" is the unspecified bucket and never scores GREEN (see evalCol).
+const TRIBE_GROUP = {
+  "Primeval":"prenat","Patriarch":"prenat",
+  "Judah":"israel","Levi":"israel","Benjamin":"israel","Ephraim":"israel",
+  "Manasseh":"israel","Dan":"israel","Zebulun":"israel","Israelite":"israel",
+  "Egyptian":"gentile","Midianite":"gentile","Moabite":"gentile","Canaanite":"gentile",
+  "Philistine":"gentile","Edomite":"gentile","Aramean":"gentile","Sidonian":"gentile",
+  "Babylonian":"gentile","Persian":"gentile","Roman":"gentile","Greek":"gentile","Uz":"gentile"
+};
+
+// per-figure tribe/nation, keyed by name (kept separate so the rows above stay untouched)
+const TRIBE = {
+  "Adam":"Primeval","Eve":"Primeval","Cain":"Primeval","Abel":"Primeval","Enoch":"Primeval",
+  "Methuselah":"Primeval","Noah":"Primeval",
+  "Abraham":"Patriarch","Sarah":"Patriarch","Lot":"Patriarch","Hagar":"Patriarch","Ishmael":"Patriarch",
+  "Isaac":"Patriarch","Rebekah":"Patriarch","Jacob":"Patriarch","Esau":"Patriarch","Leah":"Patriarch",
+  "Rachel":"Patriarch","Judah":"Patriarch","Joseph (son of Jacob)":"Patriarch","Job":"Uz",
+  "Moses":"Levi","Aaron":"Levi","Miriam":"Levi","Pharaoh":"Egyptian","Jethro":"Midianite",
+  "Zipporah":"Midianite","Caleb":"Judah","Joshua":"Ephraim","Rahab":"Canaanite",
+  "Deborah":"Israelite","Gideon":"Manasseh","Samson":"Dan","Delilah":"Philistine","Ehud":"Benjamin",
+  "Jephthah":"Manasseh","Ruth":"Moabite","Naomi":"Judah","Boaz":"Judah","Eli":"Levi",
+  "Hannah":"Israelite","Samuel":"Levi",
+  "Saul":"Benjamin","Jonathan":"Benjamin","David":"Judah","Goliath":"Philistine","Abigail":"Judah",
+  "Bathsheba":"Israelite","Nathan":"Israelite","Absalom":"Judah","Joab":"Judah","Solomon":"Judah",
+  "Elijah":"Israelite","Ahab":"Israelite","Jezebel":"Sidonian","Elisha":"Israelite","Naaman":"Aramean",
+  "Hezekiah":"Judah","Josiah":"Judah","Isaiah":"Israelite","Jeremiah":"Levi","Hosea":"Israelite",
+  "Amos":"Judah","Jonah":"Zebulun","Micah":"Judah","Joel":"Israelite",
+  "Ezekiel":"Levi","Daniel":"Judah","Shadrach":"Judah","Meshach":"Judah","Abednego":"Judah",
+  "Nebuchadnezzar":"Babylonian","Esther":"Benjamin","Mordecai":"Benjamin","Ezra":"Levi",
+  "Nehemiah":"Israelite","Zerubbabel":"Judah","Cyrus":"Persian","Haggai":"Israelite",
+  "Zechariah":"Levi","Malachi":"Israelite",
+  "Jesus":"Judah","Mary (mother of Jesus)":"Judah","Joseph (of Nazareth)":"Judah",
+  "John the Baptist":"Levi","Peter":"Israelite","Andrew":"Israelite","James (son of Zebedee)":"Israelite",
+  "John (the Apostle)":"Israelite","Philip":"Israelite","Thomas":"Israelite","Matthew":"Israelite",
+  "Judas Iscariot":"Israelite","Mary Magdalene":"Israelite","Martha":"Israelite","Lazarus":"Israelite",
+  "Nicodemus":"Israelite","Zacchaeus":"Israelite","Pontius Pilate":"Roman","Herod the Great":"Edomite",
+  "Caiaphas":"Levi",
+  "Paul":"Benjamin","Stephen":"Israelite","Barnabas":"Levi","Cornelius":"Roman","Lydia":"Greek",
+  "Priscilla":"Israelite","Aquila":"Israelite","Apollos":"Israelite","Silas":"Israelite",
+  "Philip (the Evangelist)":"Israelite","Timothy":"Israelite","Titus":"Greek","Luke":"Greek",
+  "Mark":"Israelite","Philemon":"Greek","Onesimus":"Greek"
+};
+
+// per-figure prominence (3/2/1), keyed by name
+const PROM_FOR = {
+  "Adam":3,"Eve":3,"Cain":2,"Abel":2,"Enoch":1,"Methuselah":1,"Noah":3,
+  "Abraham":3,"Sarah":2,"Lot":2,"Hagar":1,"Ishmael":1,"Isaac":2,"Rebekah":2,"Jacob":3,"Esau":2,
+  "Leah":1,"Rachel":2,"Judah":2,"Joseph (son of Jacob)":3,"Job":2,
+  "Moses":3,"Aaron":2,"Miriam":2,"Pharaoh":2,"Jethro":1,"Zipporah":1,"Caleb":2,"Joshua":3,"Rahab":2,
+  "Deborah":2,"Gideon":3,"Samson":3,"Delilah":2,"Ehud":1,"Jephthah":1,"Ruth":3,"Naomi":2,"Boaz":2,
+  "Eli":2,"Hannah":2,"Samuel":3,
+  "Saul":3,"Jonathan":2,"David":3,"Goliath":3,"Abigail":2,"Bathsheba":2,"Nathan":2,"Absalom":2,
+  "Joab":2,"Solomon":3,
+  "Elijah":3,"Ahab":2,"Jezebel":3,"Elisha":3,"Naaman":2,"Hezekiah":2,"Josiah":2,"Isaiah":3,
+  "Jeremiah":3,"Hosea":2,"Amos":2,"Jonah":3,"Micah":2,"Joel":1,
+  "Ezekiel":3,"Daniel":3,"Shadrach":2,"Meshach":1,"Abednego":1,"Nebuchadnezzar":3,"Esther":3,
+  "Mordecai":2,"Ezra":2,"Nehemiah":2,"Zerubbabel":2,"Cyrus":2,"Haggai":1,"Zechariah":2,"Malachi":1,
+  "Jesus":3,"Mary (mother of Jesus)":3,"Joseph (of Nazareth)":2,"John the Baptist":3,"Peter":3,
+  "Andrew":2,"James (son of Zebedee)":2,"John (the Apostle)":3,"Philip":1,"Thomas":2,"Matthew":2,
+  "Judas Iscariot":3,"Mary Magdalene":2,"Martha":1,"Lazarus":2,"Nicodemus":1,"Zacchaeus":1,
+  "Pontius Pilate":2,"Herod the Great":2,"Caiaphas":1,
+  "Paul":3,"Stephen":2,"Barnabas":2,"Cornelius":1,"Lydia":1,"Priscilla":1,"Aquila":1,"Apollos":2,
+  "Silas":1,"Philip (the Evangelist)":2,"Timothy":2,"Titus":1,"Luke":2,"Mark":2,"Philemon":1,"Onesimus":1
+};
+
+// --- the dataset -------------------------------------------------------------
+// [name, testament, section, role, gender, era, verse-reference, one-line]
+const RAW = [
+  // Primeval
+  ["Adam","OT","Law","Other","M",1,"Genesis 2:7","The first man, formed from dust."],
+  ["Eve","OT","Law","Other","F",1,"Genesis 3:20","The mother of all living."],
+  ["Cain","OT","Law","Villain","M",1,"Genesis 4:8","First murderer; slew his brother Abel."],
+  ["Abel","OT","Law","Other","M",1,"Genesis 4:4","Shepherd whose offering was accepted."],
+  ["Enoch","OT","Law","Other","M",1,"Genesis 5:24","Walked with God and was taken."],
+  ["Methuselah","OT","Law","Other","M",1,"Genesis 5:27","Lived 969 years, the oldest man."],
+  ["Noah","OT","Law","Leader","M",1,"Genesis 6:9","Built the ark; saved through the flood."],
+
+  // Patriarchs
+  ["Abraham","OT","Law","Patriarch","M",2,"Genesis 12:1","Father of the faithful; called from Ur."],
+  ["Sarah","OT","Law","Matriarch","F",2,"Genesis 18:12","Laughed, then bore Isaac in old age."],
+  ["Lot","OT","Law","Other","M",2,"Genesis 19:1","Abraham's nephew, rescued from Sodom."],
+  ["Hagar","OT","Law","Other","F",2,"Genesis 16:1","Sarah's servant; mother of Ishmael."],
+  ["Ishmael","OT","Law","Other","M",2,"Genesis 16:11","Son of Abraham and Hagar."],
+  ["Isaac","OT","Law","Patriarch","M",2,"Genesis 22:9","The promised son, nearly sacrificed."],
+  ["Rebekah","OT","Law","Matriarch","F",2,"Genesis 24:67","Isaac's wife, met at the well."],
+  ["Jacob","OT","Law","Patriarch","M",2,"Genesis 32:28","Wrestled with God; renamed Israel."],
+  ["Esau","OT","Law","Other","M",2,"Genesis 25:34","Sold his birthright for stew."],
+  ["Leah","OT","Law","Matriarch","F",2,"Genesis 29:23","Jacob's first wife; mother of Judah."],
+  ["Rachel","OT","Law","Matriarch","F",2,"Genesis 29:18","Jacob's beloved; mother of Joseph."],
+  ["Judah","OT","Law","Other","M",2,"Genesis 49:10","Ancestor of David and the Messiah."],
+  ["Joseph (son of Jacob)","OT","Law","Leader","M",2,"Genesis 41:41","Sold by brothers; ruled Egypt."],
+  ["Job","OT","Wisdom","Other","M",2,"Job 1:1","Suffered greatly yet kept his faith."],
+
+  // Exodus / Wilderness
+  ["Moses","OT","Law","Leader","M",3,"Exodus 3:10","Led Israel out of Egypt; received the Law."],
+  ["Aaron","OT","Law","Priest","M",3,"Exodus 28:1","Israel's first high priest; Moses' brother."],
+  ["Miriam","OT","Law","Prophet","F",3,"Exodus 15:20","Prophetess; sang after the Red Sea."],
+  ["Pharaoh","OT","Law","Villain","M",3,"Exodus 5:2","Hardened his heart against Israel."],
+  ["Jethro","OT","Law","Priest","M",3,"Exodus 18:1","Midian priest; Moses' father-in-law."],
+  ["Zipporah","OT","Law","Other","F",3,"Exodus 2:21","Moses' wife, daughter of Jethro."],
+  ["Caleb","OT","Law","Leader","M",3,"Numbers 13:30","Faithful spy who urged entering Canaan."],
+  ["Joshua","OT","History","Leader","M",3,"Joshua 1:9","Succeeded Moses; led the conquest."],
+  ["Rahab","OT","History","Other","F",3,"Joshua 2:1","Hid the spies; ancestor of David."],
+
+  // Judges
+  ["Deborah","OT","History","Judge","F",4,"Judges 4:4","Prophetess and judge who led Israel."],
+  ["Gideon","OT","History","Judge","M",4,"Judges 6:14","Defeated Midian with 300 men."],
+  ["Samson","OT","History","Judge","M",4,"Judges 16:17","Strong man undone by Delilah."],
+  ["Delilah","OT","History","Villain","F",4,"Judges 16:18","Betrayed Samson's secret."],
+  ["Ehud","OT","History","Judge","M",4,"Judges 3:15","Left-handed judge who slew Eglon."],
+  ["Jephthah","OT","History","Judge","M",4,"Judges 11:30","Judge bound by a rash vow."],
+  ["Ruth","OT","History","Other","F",4,"Ruth 1:16","Moabite loyal to Naomi; wed Boaz."],
+  ["Naomi","OT","History","Other","F",4,"Ruth 1:20","Ruth's mother-in-law; called Mara."],
+  ["Boaz","OT","History","Other","M",4,"Ruth 4:9","Kinsman-redeemer who married Ruth."],
+  ["Eli","OT","History","Priest","M",4,"1 Samuel 3:1","High priest who mentored Samuel."],
+  ["Hannah","OT","History","Other","F",4,"1 Samuel 1:27","Prayed for and dedicated Samuel."],
+  ["Samuel","OT","History","Prophet","M",4,"1 Samuel 3:10","Last judge; anointed Saul and David."],
+
+  // United Kingdom
+  ["Saul","OT","History","King","M",5,"1 Samuel 10:1","Israel's first king; later rejected."],
+  ["Jonathan","OT","History","Other","M",5,"1 Samuel 18:1","Saul's son; David's faithful friend."],
+  ["David","OT","History","King","M",5,"1 Samuel 17:45","Shepherd-king who slew Goliath."],
+  ["Goliath","OT","History","Villain","M",5,"1 Samuel 17:4","Philistine giant felled by David."],
+  ["Abigail","OT","History","Other","F",5,"1 Samuel 25:32","Wise woman who became David's wife."],
+  ["Bathsheba","OT","History","Other","F",5,"2 Samuel 11:3","Mother of Solomon."],
+  ["Nathan","OT","History","Prophet","M",5,"2 Samuel 12:7","Prophet who confronted David."],
+  ["Absalom","OT","History","Villain","M",5,"2 Samuel 15:10","David's son who rebelled."],
+  ["Joab","OT","History","Leader","M",5,"2 Samuel 3:27","David's fierce army commander."],
+  ["Solomon","OT","History","King","M",5,"1 Kings 3:9","Wisest king; built the temple."],
+
+  // Divided Kingdom & Prophets
+  ["Elijah","OT","History","Prophet","M",6,"1 Kings 18:36","Called down fire; faced Baal's prophets."],
+  ["Ahab","OT","History","King","M",6,"1 Kings 16:30","Wicked king married to Jezebel."],
+  ["Jezebel","OT","History","Queen","F",6,"1 Kings 21:25","Queen who promoted Baal worship."],
+  ["Elisha","OT","History","Prophet","M",6,"2 Kings 2:9","Elijah's successor; did many miracles."],
+  ["Naaman","OT","History","Other","M",6,"2 Kings 5:14","Aramean healed of leprosy in the Jordan."],
+  ["Hezekiah","OT","History","King","M",6,"2 Kings 18:5","Righteous king who trusted the Lord."],
+  ["Josiah","OT","History","King","M",6,"2 Kings 22:2","Boy-king who renewed the covenant."],
+  ["Isaiah","OT","Prophets","Prophet","M",6,"Isaiah 6:8","“Here am I; send me.” Foretold Messiah."],
+  ["Jeremiah","OT","Prophets","Prophet","M",6,"Jeremiah 1:5","The weeping prophet of Judah's fall."],
+  ["Hosea","OT","Prophets","Prophet","M",6,"Hosea 3:1","Married Gomer as a sign of God's love."],
+  ["Amos","OT","Prophets","Prophet","M",6,"Amos 7:14","Shepherd-prophet of justice."],
+  ["Jonah","OT","Prophets","Prophet","M",6,"Jonah 1:3","Fled, was swallowed, preached to Nineveh."],
+  ["Micah","OT","Prophets","Prophet","M",6,"Micah 5:2","Foretold Messiah's birth in Bethlehem."],
+  ["Joel","OT","Prophets","Prophet","M",6,"Joel 2:28","“I will pour out my Spirit on all flesh.”"],
+
+  // Exile & Return
+  ["Ezekiel","OT","Prophets","Prophet","M",7,"Ezekiel 37:4","Saw the valley of dry bones."],
+  ["Daniel","OT","Prophets","Prophet","M",7,"Daniel 6:22","Faithful in exile; the lions' den."],
+  ["Shadrach","OT","Prophets","Other","M",7,"Daniel 3:17","Survived the fiery furnace."],
+  ["Meshach","OT","Prophets","Other","M",7,"Daniel 3:17","Stood firm in the furnace with friends."],
+  ["Abednego","OT","Prophets","Other","M",7,"Daniel 3:17","Unburned in Nebuchadnezzar's furnace."],
+  ["Nebuchadnezzar","OT","Prophets","King","M",7,"Daniel 4:34","Babylon's king humbled by God."],
+  ["Esther","OT","History","Queen","F",7,"Esther 4:14","Queen “for such a time as this.”"],
+  ["Mordecai","OT","History","Other","M",7,"Esther 2:7","Esther's cousin who foiled Haman."],
+  ["Ezra","OT","History","Priest","M",7,"Ezra 7:10","Scribe who restored the Law."],
+  ["Nehemiah","OT","History","Leader","M",7,"Nehemiah 2:5","Rebuilt Jerusalem's walls."],
+  ["Zerubbabel","OT","History","Leader","M",7,"Ezra 3:8","Led the rebuilding of the temple."],
+  ["Cyrus","OT","History","King","M",7,"Ezra 1:2","Persian king who freed the exiles."],
+  ["Haggai","OT","Prophets","Prophet","M",7,"Haggai 1:8","Urged rebuilding of the temple."],
+  ["Zechariah","OT","Prophets","Prophet","M",7,"Zechariah 9:9","Foresaw the King on a donkey."],
+  ["Malachi","OT","Prophets","Prophet","M",7,"Malachi 3:1","Last OT prophet; foretold the messenger."],
+
+  // Gospels
+  ["Jesus","NT","Gospels","Messiah","M",8,"John 1:14","The Word made flesh; Savior of the world."],
+  ["Mary (mother of Jesus)","NT","Gospels","Other","F",8,"Luke 1:38","“Let it be to me according to your word.”"],
+  ["Joseph (of Nazareth)","NT","Gospels","Other","M",8,"Matthew 1:20","Carpenter; earthly guardian of Jesus."],
+  ["John the Baptist","NT","Gospels","Prophet","M",8,"John 1:23","Voice in the wilderness; baptized Jesus."],
+  ["Peter","NT","Gospels","Apostle","M",8,"Matthew 16:16","“You are the Christ.” The rock."],
+  ["Andrew","NT","Gospels","Apostle","M",8,"John 1:40","Peter's brother; first to follow."],
+  ["James (son of Zebedee)","NT","Gospels","Apostle","M",8,"Mark 1:19","Fisherman; one of the inner three."],
+  ["John (the Apostle)","NT","Gospels","Apostle","M",8,"John 13:23","The disciple whom Jesus loved."],
+  ["Philip","NT","Gospels","Apostle","M",8,"John 1:43","“Come and see.” Apostle from Bethsaida."],
+  ["Thomas","NT","Gospels","Apostle","M",8,"John 20:28","“My Lord and my God!” The doubter."],
+  ["Matthew","NT","Gospels","Apostle","M",8,"Matthew 9:9","Tax collector turned apostle."],
+  ["Judas Iscariot","NT","Gospels","Villain","M",8,"Matthew 26:15","Betrayed Jesus for thirty pieces."],
+  ["Mary Magdalene","NT","Gospels","Disciple","F",8,"John 20:16","First to see the risen Lord."],
+  ["Martha","NT","Gospels","Other","F",8,"Luke 10:40","Busy hostess; sister of Lazarus."],
+  ["Lazarus","NT","Gospels","Other","M",8,"John 11:43","Raised from the dead by Jesus."],
+  ["Nicodemus","NT","Gospels","Other","M",8,"John 3:3","Pharisee told he must be born again."],
+  ["Zacchaeus","NT","Gospels","Other","M",8,"Luke 19:5","Short tax collector up a sycamore tree."],
+  ["Pontius Pilate","NT","Gospels","Villain","M",8,"John 19:6","Governor who condemned Jesus."],
+  ["Herod the Great","NT","Gospels","Villain","M",8,"Matthew 2:16","King who slaughtered the infants."],
+  ["Caiaphas","NT","Gospels","Villain","M",8,"John 11:49","High priest who plotted Jesus' death."],
+
+  // Early Church
+  ["Paul","NT","Epistles","Apostle","M",9,"Acts 9:15","Persecutor turned apostle to the Gentiles."],
+  ["Stephen","NT","Acts","Disciple","M",9,"Acts 7:59","The first Christian martyr."],
+  ["Barnabas","NT","Acts","Missionary","M",9,"Acts 4:36","“Son of encouragement”; Paul's partner."],
+  ["Cornelius","NT","Acts","Other","M",9,"Acts 10:4","Roman centurion, first Gentile convert."],
+  ["Lydia","NT","Acts","Other","F",9,"Acts 16:14","Seller of purple; first European convert."],
+  ["Priscilla","NT","Acts","Other","F",9,"Acts 18:26","Taught Apollos with her husband Aquila."],
+  ["Aquila","NT","Acts","Other","M",9,"Acts 18:2","Tentmaker who hosted Paul."],
+  ["Apollos","NT","Acts","Evangelist","M",9,"Acts 18:24","Eloquent preacher from Alexandria."],
+  ["Silas","NT","Acts","Missionary","M",9,"Acts 16:25","Sang in prison with Paul."],
+  ["Philip (the Evangelist)","NT","Acts","Evangelist","M",9,"Acts 8:35","Baptized the Ethiopian eunuch."],
+  ["Timothy","NT","Epistles","Leader","M",9,"1 Timothy 4:12","Young pastor mentored by Paul."],
+  ["Titus","NT","Epistles","Leader","M",9,"Titus 1:5","Paul's helper who organized Crete."],
+  ["Luke","NT","Acts","Evangelist","M",9,"Colossians 4:14","The beloved physician; Gospel author."],
+  ["Mark","NT","Gospels","Evangelist","M",9,"Acts 12:25","Wrote the second Gospel."],
+  ["Philemon","NT","Epistles","Other","M",9,"Philemon 1:10","Asked to receive back Onesimus."],
+  ["Onesimus","NT","Epistles","Other","M",9,"Philemon 1:11","Runaway slave become a brother."]
+];
+
+const FIGURES = RAW.map(r => ({
+  name:r[0], testament:r[1], section:r[2], role:r[3],
+  era:r[5], ref:r[6], blurb:r[7],
+  tribe:TRIBE[r[0]], prominence:PROM_FOR[r[0]],
+  key:r[0].toLowerCase()
+}));
+
+// --- BSB verse fetching (Free Use Bible API, sourced from fetch.bible) --------
+// Public-domain Berean Standard Bible. CORS-enabled JSON.
+const BSB_BOOKS = {
+  "Genesis":"GEN","Exodus":"EXO","Leviticus":"LEV","Numbers":"NUM","Deuteronomy":"DEU",
+  "Joshua":"JOS","Judges":"JDG","Ruth":"RUT","1 Samuel":"1SA","2 Samuel":"2SA",
+  "1 Kings":"1KI","2 Kings":"2KI","1 Chronicles":"1CH","2 Chronicles":"2CH",
+  "Ezra":"EZR","Nehemiah":"NEH","Esther":"EST","Job":"JOB","Psalm":"PSA","Psalms":"PSA",
+  "Proverbs":"PRO","Ecclesiastes":"ECC","Song":"SNG","Isaiah":"ISA","Jeremiah":"JER",
+  "Lamentations":"LAM","Ezekiel":"EZK","Daniel":"DAN","Hosea":"HOS","Joel":"JOL",
+  "Amos":"AMO","Obadiah":"OBA","Jonah":"JON","Micah":"MIC","Nahum":"NAM",
+  "Habakkuk":"HAB","Zephaniah":"ZEP","Haggai":"HAG","Zechariah":"ZEC","Malachi":"MAL",
+  "Matthew":"MAT","Mark":"MRK","Luke":"LUK","John":"JHN","Acts":"ACT","Romans":"ROM",
+  "1 Corinthians":"1CO","2 Corinthians":"2CO","Galatians":"GAL","Ephesians":"EPH",
+  "Philippians":"PHP","Colossians":"COL","1 Thessalonians":"1TH","2 Thessalonians":"2TH",
+  "1 Timothy":"1TI","2 Timothy":"2TI","Titus":"TIT","Philemon":"PHM","Hebrews":"HEB",
+  "James":"JAS","1 Peter":"1PE","2 Peter":"2PE","1 John":"1JN","2 John":"2JN",
+  "3 John":"3JN","Jude":"JUD","Revelation":"REV"
+};
+function parseRef(ref){
+  const m = ref.match(/^(.+)\s+(\d+):(\d+)$/);
+  if(!m) return null;
+  const code = BSB_BOOKS[m[1].trim()];
+  if(!code) return null;
+  return {code, chap:+m[2], verse:+m[3]};
+}
+const verseCache = {};
+async function fetchVerse(ref){
+  if(verseCache[ref]!==undefined) return verseCache[ref];
+  const p = parseRef(ref);
+  if(!p){ return (verseCache[ref]=null); }
+  try{
+    const res = await fetch(`https://bible.helloao.org/api/BSB/${p.code}/${p.chap}.json`);
+    if(!res.ok) throw 0;
+    const data = await res.json();
+    const v = data.chapter.content.find(c=>c.type==="verse" && c.number===p.verse);
+    if(!v) throw 0;
+    let text = v.content.map(part =>
+      typeof part==="string" ? part : (part && typeof part.text==="string" ? part.text : "")
+    ).join(" ");
+    text = text.replace(/\s+/g," ")
+               .replace(/\s+([,.;:!?’”])/g,"$1")
+               .replace(/([“‘(])\s+/g,"$1")
+               .trim();
+    return (verseCache[ref] = text || null);
+  }catch(e){ return (verseCache[ref]=null); }
+}
+
+const COLS = [
+  {k:"section",    label:"Section",        get:f=>f.section},
+  {k:"role",       label:"Role",           get:f=>f.role},
+  {k:"tribe",      label:"Tribe / Nation", get:f=>f.tribe},
+  {k:"era",        label:"Era",            get:f=>ERAS[f.era],  dir:true, val:f=>f.era},
+  {k:"prominence", label:"Prominence",     get:f=>PROM[f.prominence], dir:true, val:f=>f.prominence}
+];
+
+const MAX_GUESSES = 6;
+
+// ---- state ----
+let answer, guesses, finished, won, practiceMode;
+
+// ---- deterministic daily pick ----
+function daySeed(){
+  const epoch = Date.UTC(2024,0,1);
+  return Math.floor((Date.now()-epoch)/86400000);
+}
+function dailyAnswer(){
+  // shuffle-ish deterministic index
+  let s = daySeed();
+  let x = (s*2654435761) % 4294967296;
+  x = Math.abs(x) % FIGURES.length;
+  return FIGURES[x];
+}
+
+// ---- feedback engine ----
+function evalCol(colKey, g, a){
+  if(colKey==="section"){
+    if(g.section===a.section) return "green";
+    return g.testament===a.testament ? "yellow":"gray";
+  }
+  if(colKey==="role"){
+    if(g.role===a.role) return "green";
+    return ROLE_FAMILY[g.role]===ROLE_FAMILY[a.role] ? "yellow":"gray";
+  }
+  if(colKey==="tribe"){
+    // "Israelite" is unspecified — two unknowns are close, not an exact match
+    if(g.tribe===a.tribe && g.tribe!=="Israelite") return "green";
+    return TRIBE_GROUP[g.tribe]===TRIBE_GROUP[a.tribe] ? "yellow":"gray";
+  }
+  if(colKey==="era"){
+    return g.era===a.era ? "green":"gray"; // arrow shown separately
+  }
+  if(colKey==="prominence"){
+    return g.prominence===a.prominence ? "green":"gray"; // arrow shown separately
+  }
+}
+
+// ---- rendering ----
+const board = document.getElementById("board");
+function renderBoard(){
+  board.innerHTML="";
+  for(let i=0;i<MAX_GUESSES;i++){
+    const g = guesses[i];
+    if(g){
+      const isWin = won && i===guesses.length-1;
+      const twin = !isWin && g.key!==answer.key && COLS.every(c=>evalCol(c.k,g,answer)==="green");
+      const strip = document.createElement("div");
+      strip.className = "namestrip" + (isWin?" win":"") + (twin?" twin":"");
+      if(twin){
+        strip.innerHTML = `${g.name}<span class="twinnote">↑ every clue matches — but not the figure</span>`;
+      }else{
+        strip.textContent = g.name;
+      }
+      board.appendChild(strip);
+    }
+    const row = document.createElement("div");
+    row.className="row";
+    for(const col of COLS){
+      const cell = document.createElement("div");
+      cell.className="cell";
+      if(!g){ cell.classList.add("empty"); cell.innerHTML="&nbsp;"; }
+      else{
+        const state = evalCol(col.k, g, answer);
+        cell.classList.add(state);
+        let html = `<span>${col.get(g)}</span>`;
+        if(col.dir && state!=="green"){
+          const arrow = col.val(answer)>col.val(g) ? "⬆️":"⬇️";
+          html += `<span class="arrow">${arrow}</span>`;
+        }
+        cell.innerHTML = html;
+        cell.style.animationDelay = (COLS.indexOf(col)*0.08)+"s";
+        cell.classList.add("flip");
+      }
+      row.appendChild(cell);
+    }
+    board.appendChild(row);
+  }
+}
+
+// ---- suggestions ----
+const input = document.getElementById("guess");
+const suggest = document.getElementById("suggest");
+let activeSug = -1, sugList = [];
+
+function showSuggestions(){
+  const q = input.value.trim().toLowerCase();
+  if(!q){ suggest.style.display="none"; return; }
+  const used = new Set(guesses.map(g=>g.key));
+  sugList = FIGURES.filter(f=>f.key.includes(q) && !used.has(f.key)).slice(0,8);
+  if(!sugList.length){ suggest.style.display="none"; return; }
+  suggest.innerHTML = sugList.map((f,i)=>
+    `<div data-i="${i}"><span>${f.name}</span><span class="tag">${f.testament} · ${ERAS[f.era]}</span></div>`
+  ).join("");
+  suggest.style.display="block";
+  activeSug=-1;
+  [...suggest.children].forEach(c=>c.onclick=()=>pick(+c.dataset.i));
+}
+function pick(i){
+  input.value = sugList[i].name;
+  suggest.style.display="none";
+  submit();
+}
+input.addEventListener("input", showSuggestions);
+input.addEventListener("keydown", e=>{
+  if(suggest.style.display==="block" && sugList.length){
+    if(e.key==="ArrowDown"){ e.preventDefault(); activeSug=Math.min(activeSug+1,sugList.length-1); highlight(); return;}
+    if(e.key==="ArrowUp"){ e.preventDefault(); activeSug=Math.max(activeSug-1,0); highlight(); return;}
+    if(e.key==="Enter" && activeSug>=0){ e.preventDefault(); pick(activeSug); return;}
+  }
+  if(e.key==="Enter"){ e.preventDefault(); submit(); }
+});
+function highlight(){
+  [...suggest.children].forEach((c,i)=>c.classList.toggle("active",i===activeSug));
+}
+document.addEventListener("click", e=>{
+  if(!e.target.closest(".inputwrap")) suggest.style.display="none";
+});
+
+// ---- toast & message ----
+function toast(t){
+  const el=document.getElementById("toast");
+  el.textContent=t; el.classList.add("show");
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove("show"),1600);
+}
+const msg=document.getElementById("msg");
+
+// ---- submit ----
+function submit(){
+  if(finished) return;
+  const raw = input.value.trim().toLowerCase();
+  if(!raw) return;
+  let f = FIGURES.find(x=>x.key===raw);
+  if(!f){
+    const partial = FIGURES.filter(x=>x.key.includes(raw));
+    if(partial.length===1) f=partial[0];
+  }
+  if(!f){ toast("Not a figure in this game — pick from the list."); return; }
+  if(guesses.some(g=>g.key===f.key)){ toast("Already guessed."); return; }
+
+  guesses.push(f);
+  input.value=""; suggest.style.display="none";
+
+  const allGreen = COLS.every(c=>evalCol(c.k,f,answer)==="green");
+  if(f.key===answer.key) won=true;   // set before render so the winning row styles green
+  renderBoard();
+
+  if(f.key===answer.key){ finished=true; endGame(); }
+  else if(guesses.length>=MAX_GUESSES){ finished=true; won=false; endGame(); }
+  else if(allGreen){
+    toast("Every clue matches — but that's not the one!");
+    const left = MAX_GUESSES-guesses.length;
+    msg.innerHTML = `🎯 A perfect twin of <b>${f.name}</b> — the figure shares every clue. ${left} ${left===1?"guess":"guesses"} left.`;
+  }
+  else { msg.textContent = `${MAX_GUESSES-guesses.length} ${MAX_GUESSES-guesses.length===1?"guess":"guesses"} left`; }
+  saveState();
+}
+document.getElementById("submitBtn").onclick=submit;
+
+// ---- end ----
+function endGame(){
+  input.disabled=true;
+  document.getElementById("submitBtn").disabled=true;
+  msg.textContent="";
+  if(!practiceMode) recordStats(won, guesses.length);
+  document.getElementById("endTitle").textContent = won
+     ? ["","Glory!","Well done!","Faithful!","Got there!","Just in time!","Last breath!"][guesses.length]
+     : "Not this time";
+  document.getElementById("endWho").innerHTML =
+     `It was <b>${answer.name}</b> — ${answer.blurb}`;
+  const verseEl = document.getElementById("endVerse");
+  verseEl.textContent = `Loading ${answer.ref} (BSB)…`;
+  const reveal = answer;
+  fetchVerse(reveal.ref).then(text=>{
+    if(reveal!==answer) return; // a new game started while loading
+    if(text){
+      const open = /^[“"‘]/.test(text) ? "" : "“";
+      const close = /[”"’]$/.test(text) ? "" : "”";
+      verseEl.innerHTML = `${open}${text}${close} <span style="white-space:nowrap">— ${reveal.ref} (BSB)</span>`;
+    } else {
+      verseEl.innerHTML = `${reveal.ref} (BSB)`;
+    }
+  });
+  const st=loadStats();
+  document.getElementById("stPlayed").textContent=st.played;
+  document.getElementById("stWin").textContent=(st.played?Math.round(st.wins/st.played*100):0)+"%";
+  document.getElementById("stStreak").textContent=st.streak;
+  document.getElementById("overlay").classList.add("show");
+  document.getElementById("reopenBtn").style.display="";
+}
+
+const overlay=document.getElementById("overlay");
+document.getElementById("closeBtn").onclick=()=>overlay.classList.remove("show");
+overlay.addEventListener("click",e=>{ if(e.target===overlay) overlay.classList.remove("show"); });
+document.getElementById("reopenBtn").onclick=()=>overlay.classList.add("show");
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") overlay.classList.remove("show"); });
+
+// ---- share ----
+function shareText(){
+  const head = practiceMode ? "WITNESS (practice)" : `WITNESS #${daySeed()}`;
+  const rows = guesses.map(g=>{
+    return COLS.map(col=>{
+      const s=evalCol(col.k,g,answer);
+      if(col.dir && s!=="green") return col.val(answer)>col.val(g)?"⬆️":"⬇️";
+      return s==="green"?"🟩":s==="yellow"?"🟨":"⬛";
+    }).join("");
+  }).join("\n");
+  const score = won ? `${guesses.length}/${MAX_GUESSES}` : `X/${MAX_GUESSES}`;
+  return `${head} ${score}\n${rows}`;
+}
+async function copyToClipboard(text){
+  try{
+    if(navigator.clipboard && window.isSecureContext){
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  }catch(e){ /* fall through to legacy path */ }
+  try{
+    const ta=document.createElement("textarea");
+    ta.value=text; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    const ok=document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  }catch(e){ return false; }
+}
+
+const copyBtn=document.getElementById("copyBtn");
+copyBtn.onclick=async()=>{
+  const ok=await copyToClipboard(shareText());
+  if(ok){
+    const orig=copyBtn.textContent;
+    copyBtn.textContent="✓ Copied!";
+    toast("Copied result to clipboard!");
+    setTimeout(()=>{ copyBtn.textContent=orig; }, 1600);
+  }else{
+    toast("Couldn't copy — long-press to select instead.");
+  }
+};
+
+const shareBtn=document.getElementById("shareBtn");
+if(navigator.share){
+  shareBtn.style.display="";   // only show native share when supported (mobile)
+  shareBtn.onclick=()=>navigator.share({text:shareText()}).catch(()=>{});
+}
+
+// ---- stats (localStorage) ----
+function loadStats(){
+  try{ return JSON.parse(localStorage.getItem("witness_stats")) || {played:0,wins:0,streak:0,best:0}; }
+  catch(e){ return {played:0,wins:0,streak:0,best:0}; }
+}
+function recordStats(w, tries){
+  const s=loadStats();
+  s.played++; if(w){ s.wins++; s.streak++; s.best=Math.max(s.best,s.streak);} else s.streak=0;
+  localStorage.setItem("witness_stats", JSON.stringify(s));
+}
+
+// ---- persistence of today's game ----
+function saveState(){
+  if(practiceMode) return;
+  localStorage.setItem("witness_today", JSON.stringify({
+    seed:daySeed(), guesses:guesses.map(g=>g.key), finished, won
+  }));
+}
+function restoreDaily(){
+  try{
+    const d=JSON.parse(localStorage.getItem("witness_today"));
+    if(d && d.seed===daySeed()){
+      d.guesses.forEach(k=>{ const f=FIGURES.find(x=>x.key===k); if(f) guesses.push(f); });
+      finished=d.finished; won=d.won;
+    }
+  }catch(e){}
+}
+
+// ---- game setup ----
+function newGame(practice){
+  practiceMode=practice;
+  guesses=[]; finished=false; won=false;
+  input.disabled=false; input.value="";
+  document.getElementById("submitBtn").disabled=false;
+  document.getElementById("overlay").classList.remove("show");
+  document.getElementById("reopenBtn").style.display="none";
+  if(practice){
+    answer = FIGURES[Math.floor(Math.random()*FIGURES.length)];
+    msg.textContent="Random puzzle — guess away!";
+  }else{
+    answer = dailyAnswer();
+    restoreDaily();
+  }
+  renderBoard();
+  if(!practice && finished){ endGame(); }
+  else input.focus();
+  const attribution = `<br>Verse text: Berean Standard Bible (public domain) via the <a href="https://fetch.bible" target="_blank" rel="noopener">fetch.bible</a> project.`;
+  document.getElementById("foot").innerHTML =
+    (practice ? "Practice mode · a random figure from the cloud of witnesses."
+    : `Daily puzzle #${daySeed()} · everyone gets the same figure today. ${FIGURES.length} figures in the set.`)
+    + attribution;
+}
+
+document.getElementById("practiceBtn").onclick=()=>newGame(true);
+document.getElementById("againBtn").onclick=()=>newGame(true);
+
+newGame(false);
+</script>
+</body>
+</html>
